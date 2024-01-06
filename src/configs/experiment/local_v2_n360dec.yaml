@@ -1,0 +1,9 @@
+# @package _global_
+dataset:
+  basepath: data  # Change to your path
+trainer:
+  gpus: 1  # Change to your number of GPUs
+wandb:  # Fill in your settings
+  group: kcshum_v2_n360dec
+  project: neuralSceneDecoration
+  entity: kcshum

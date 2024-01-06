@@ -1,0 +1,148 @@
+# @package _global_
+defaults:
+  - /checkpoint: every_n_train_steps
+  - /dataset: lsun
+checkpoint:
+  every_n_train_steps: 1500
+wandb:
+  name: n360dec
+dataset:
+  category: bedroom
+  resolution: ${model.resolution}
+  rect_scaler: ${model.rect_scaler}
+  dataloader:
+    batch_size: 8
+    drop_last: true
+model:
+  name: v2_cycleBlobGAN
+  lr: 0.002
+  dim: 512
+  noise_dim: 512
+  resolution: 256
+  rect_scaler: 1
+
+  use_horizontal_circular_padding: false
+
+  # 2d layout net
+  twoD_noise_dim: 3
+  use_twoD_layout_net: true
+
+  # fid/kid
+  log_fid_every_epoch: true
+  fid_kid_save_path: ${wandb.name}
+  fid_kid_dataset_path: ${dataset.bgpath}
+
+  usePretrainEmptier: true
+  freezeEmptier: true
+  pretrainEmptierCkpt: models/pretrained/pix2pixHD_emptier/epoch_204-step_199999.ckpt
+
+  randomAugmentation:
+    randomHorizontalFlip: true
+    randomHorizontalTranslation: true
+    imgWidth: ${model.resolution}
+    rect_scaler: ${model.rect_scaler}
+    batchSize: ${dataset.dataloader.batch_size}
+    randomSeed: 10
+
+  apply_ada_aug: false
+
+  lambda: # Needed for convenience since can't input λ on command line
+    D_e2f_real: 1
+    D_e2f_fake: 1
+    D_e2f_R1: 50
+
+    D_e2f_false_real: 1
+
+    G_e2f: 1
+    G_e2f_path: 2
+    G_e2f_feature_mean: 10
+    G_e2f_feature_variance: 10
+    G_bg: 1
+
+    D_f2e_real: 1
+    D_f2e_fake: 1
+    D_f2e_R1: 50
+    G_f2e: 1
+
+    Cycle_Empty: 1
+    Cycle_Full: 1
+
+  bgEncoder:
+    feature_dim: 768
+    name: bgEncoder
+    pretrained_model: resnet50 #resnet50
+  discriminator_e2f:
+    name: StyleGANDiscriminator
+    size: ${model.resolution}
+    rect_scaler: ${model.rect_scaler}
+    use_horizontal_circular_padding: ${model.use_horizontal_circular_padding}
+  discriminator_f2e:
+    name: StyleGANDiscriminator
+    size: ${model.resolution}
+    rect_scaler: ${model.rect_scaler}
+  generator_e2f:
+    name: models.networks.layoutstylegan.LayoutStyleGANGenerator
+    style_dim: ${model.dim}
+    n_mlp: 8
+    size_in: 16
+    c_model: 96
+    spatial_style: ${model.spatial_style}
+    size: ${model.resolution}
+    use_horizontal_circular_padding: ${model.use_horizontal_circular_padding}
+  generator_f2e:
+    name: models.networks.emptiergan.EmptierGAN
+    input_nc: 3
+    output_nc: 3
+    ngf: 64
+    n_downsampling: 3
+    n_blocks: 7
+    padding_type: reflect
+  layout_net:
+    name: models.networks.2dlayoutnet.twoDLayoutEncoder
+
+    input_nc: 3
+    ngf: 4
+    n_downsampling: 3
+    n_blocks: 3
+    padding_type: reflect
+    size: ${model.resolution}
+    rect_scaler: ${model.rect_scaler}
+    force_square: false
+    twoD_noise_dim: ${model.twoD_noise_dim}
+
+    use_bg_before_mlp: ${model.use_bg_encoder}
+    n_features_max: ${model.n_features_max}
+    feature_dim: 768
+    style_dim: ${model.dim}
+    noise_dim: ${model.noise_dim}
+    norm_features: true
+    mlp_lr_mul: 0.01
+    mlp_hidden_dim: 1024
+    spatial_style: ${model.spatial_style}
+
+    use_horizontal_circular_padding: ${model.use_horizontal_circular_padding}
+
+  D_reg_every: 16
+  G_reg_every: -1
+  λ: ${.lambda}
+  log_images_every_n_steps: 1000
+  n_features_min: ${model.n_features}
+  n_features_max: ${model.n_features}
+  n_features: 10
+  spatial_style: true
+  valtest_log_all: true
+
+  use_bg_encoder: False
+  bg_loss: zero
+  bg_inject_way: before_mlp
+  use_edge_loss: False
+
+  blob_pano_aware: False
+  new_blob_pano_aware: False
+  old_blob_pano_aware: False
+
+trainer:
+  limit_val_batches: 40
+  precision: 32
+  plugins: null
+  deterministic: false
